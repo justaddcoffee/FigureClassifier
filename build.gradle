@@ -1,5 +1,5 @@
 apply plugin: 'java'
-apply plugin: 'maven'
+apply plugin: 'application'
 
 group = 'org.deeplearning4j'
 version = '1.0.0-beta3'
@@ -12,14 +12,24 @@ tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
 
+mainClassName = 'App'
 
 
 repositories {
         
      maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
      maven { url "http://repo.maven.apache.org/maven2" }
+//    jcenter()
+	 
 }
 dependencies {
+    compile 'com.google.guava:guava:23.0'
+
+    // Use JUnit test framework
+    testCompile 'junit:junit:4.12'
+
+
+
     compile group: 'org.nd4j', name: 'nd4j-native-platform', version:'1.0.0-beta3'
     compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version:'1.0.0-beta3'
     compile group: 'org.deeplearning4j', name: 'deeplearning4j-nlp', version:'1.0.0-beta3'
