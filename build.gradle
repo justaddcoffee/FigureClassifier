@@ -1,0 +1,32 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+
+group = 'org.deeplearning4j'
+version = '1.0.0-beta3'
+
+description = """DeepLearning4j Examples"""
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+
+
+repositories {
+        
+     maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+     maven { url "http://repo.maven.apache.org/maven2" }
+}
+dependencies {
+    compile group: 'org.nd4j', name: 'nd4j-native-platform', version:'1.0.0-beta3'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version:'1.0.0-beta3'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-nlp', version:'1.0.0-beta3'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-zoo', version:'1.0.0-beta3'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-ui_2.11', version:'1.0.0-beta3'
+    compile group: 'org.deeplearning4j', name: 'deeplearning4j-parallel-wrapper', version:'1.0.0-beta3'
+    compile group: 'org.datavec', name: 'datavec-data-codec', version:'1.0.0-beta3'
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version:'4.3.5'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version:'1.1.7'
+}
