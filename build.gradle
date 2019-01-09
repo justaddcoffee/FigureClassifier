@@ -1,10 +1,10 @@
 apply plugin: 'java'
 apply plugin: 'application'
 
-group = 'org.deeplearning4j'
+group = 'org.inca'
 version = '1.0.0-beta3'
 
-description = """DeepLearning4j Examples"""
+description = """INCA learner"""
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
