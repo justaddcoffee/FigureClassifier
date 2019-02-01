@@ -14,17 +14,26 @@ import org.datavec.image.transform.WarpImageTransform;
 import org.deeplearning4j.api.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
 import org.deeplearning4j.eval.Evaluation;
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.distribution.Distribution;
+import org.deeplearning4j.nn.conf.inputs.InputType;
 import org.deeplearning4j.nn.conf.inputs.InvalidInputTypeException;
+import org.deeplearning4j.nn.conf.layers.*;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.ui.api.UIServer;
 import org.deeplearning4j.ui.stats.StatsListener;
 import org.deeplearning4j.ui.storage.InMemoryStatsStorage;
 import org.deeplearning4j.util.ModelSerializer;
+import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
 import org.nd4j.linalg.dataset.api.preprocessor.ImagePreProcessingScaler;
+import org.nd4j.linalg.learning.config.Nesterovs;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.nd4j.linalg.primitives.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,23 +47,23 @@ import static java.lang.Math.toIntExact;
 
 /**
  * Animal Classification
- * <p>
+ *
  * Example classification of photos from 4 different animals (bear, duck, deer, turtle).
- * <p>
+ *
  * References:
- * - U.S. Fish and Wildlife Service (animal sample dataset): http://digitalmedia.fws.gov/cdm/
- * - Tiny ImageNet Classification with CNN: http://cs231n.stanford.edu/reports/2015/pdfs/leonyao_final.pdf
- * <p>
+ *  - U.S. Fish and Wildlife Service (animal sample dataset): http://digitalmedia.fws.gov/cdm/
+ *  - Tiny ImageNet Classification with CNN: http://cs231n.stanford.edu/reports/2015/pdfs/leonyao_final.pdf
+ *
  * CHALLENGE: Current setup gets low score results. Can you improve the scores? Some approaches:
- * - Add additional images to the dataset
- * - Apply more transforms to dataset
- * - Increase epochs
- * - Try different model configurations
- * - Tune by adjusting learning rate, updaters, activation & loss functions, regularization, ...
+ *  - Add additional images to the dataset
+ *  - Apply more transforms to dataset
+ *  - Increase epochs
+ *  - Try different model configurations
+ *  - Tune by adjusting learning rate, updaters, activation & loss functions, regularization, ...
  */
 
-public class AnimalsClassification {
-    protected static final Logger log = LoggerFactory.getLogger(AnimalsClassification.class);
+public class ImageOrNotClassification {
+    protected static final Logger log = LoggerFactory.getLogger(ImageOrNotClassification.class);
     protected static int height = 100;
     protected static int width = 100;
     protected static int channels = 3;
@@ -65,7 +74,7 @@ public class AnimalsClassification {
     protected static int epochs = 50;
     protected static double splitTrainTest = 0.8;
     protected static boolean save = false;
-    protected static int maxPathsPerLabel = 18;
+    protected static int maxPathsPerLabel=18;
 
     protected static String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
     private int numLabels;
@@ -80,7 +89,12 @@ public class AnimalsClassification {
          *  - pathFilter = define additional file load filter to limit size and balance batch content
          **/
         ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
-        File mainPath = new File(System.getProperty("user.dir"), "src/main/resources/animals/");
+        File mainPath = new File(System.getProperty("user.dir"), "src/main/resources/figures/");
+
+        // TODO: automatically load data here
+        if(!mainPath.exists()){
+            throw new RuntimeException("path $"+mainPath.getAbsolutePath() + "does not exist");
+        }
         FileSplit fileSplit = new FileSplit(mainPath, NativeImageLoader.ALLOWED_FORMATS, rng);
         int numExamples = toIntExact(fileSplit.length());
         numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length; //This only works if your root is clean: only label subdirs.
@@ -102,11 +116,11 @@ public class AnimalsClassification {
         ImageTransform flipTransform2 = new FlipImageTransform(new Random(123));
         ImageTransform warpTransform = new WarpImageTransform(rng, 42);
         boolean shuffle = false;
-        List<Pair<ImageTransform, Double>> pipeline = Arrays.asList(new Pair<>(flipTransform1, 0.9),
-                new Pair<>(flipTransform2, 0.8),
-                new Pair<>(warpTransform, 0.5));
+        List<Pair<ImageTransform,Double>> pipeline = Arrays.asList(new Pair<>(flipTransform1,0.9),
+                                                                   new Pair<>(flipTransform2,0.8),
+                                                                   new Pair<>(warpTransform,0.5));
 
-        ImageTransform transform = new PipelineImageTransform(pipeline, shuffle);
+        ImageTransform transform = new PipelineImageTransform(pipeline,shuffle);
         /**
          * Data Setup -> normalization
          *  - how to normalize images and generate large dataset to train on
@@ -120,11 +134,11 @@ public class AnimalsClassification {
 
         MultiLayerNetwork network = ModelGenerator.getModelForType(modelType,numLabels);
         network.init();
-        // network.setListeners(new ScoreIterationListener(listenerFreq));
+       // network.setListeners(new ScoreIterationListener(listenerFreq));
         UIServer uiServer = UIServer.getInstance();
         StatsStorage statsStorage = new InMemoryStatsStorage();
         uiServer.attach(statsStorage);
-        network.setListeners(new StatsListener(statsStorage), new ScoreIterationListener(1));
+        network.setListeners(new StatsListener( statsStorage),new ScoreIterationListener(1));
         /**
          * Data Setup -> define how to load data into net:
          *  - recordReader = the reader that loads and converts image data pass in inputSplit to initialize
@@ -141,14 +155,14 @@ public class AnimalsClassification {
         dataIter = new RecordReaderDataSetIterator(recordReader, batchSize, 1, numLabels);
         scaler.fit(dataIter);
         dataIter.setPreProcessor(scaler);
-        network.fit(dataIter, epochs);
+        network.fit(dataIter,epochs);
 
         // Train with transformations
-        recordReader.initialize(trainData, transform);
+        recordReader.initialize(trainData,transform);
         dataIter = new RecordReaderDataSetIterator(recordReader, batchSize, 1, numLabels);
         scaler.fit(dataIter);
         dataIter.setPreProcessor(scaler);
-        network.fit(dataIter, epochs);
+        network.fit(dataIter,epochs);
 
         log.info("Evaluate model....");
         recordReader.initialize(testData);
@@ -178,7 +192,7 @@ public class AnimalsClassification {
 
 
     public static void main(String[] args) throws Exception {
-        new AnimalsClassification().run(args);
+        new ImageOrNotClassification().run(args);
     }
 
 }
