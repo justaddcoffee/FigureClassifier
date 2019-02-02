@@ -14,7 +14,6 @@ import org.datavec.image.transform.WarpImageTransform;
 import org.deeplearning4j.api.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
 import org.deeplearning4j.eval.Evaluation;
-import org.deeplearning4j.nn.conf.inputs.InvalidInputTypeException;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.ui.api.UIServer;
@@ -54,20 +53,20 @@ import static java.lang.Math.toIntExact;
  */
 
 public class AnimalsClassification {
-    protected static final Logger log = LoggerFactory.getLogger(AnimalsClassification.class);
-    protected static int height = 100;
-    protected static int width = 100;
-    protected static int channels = 3;
-    protected static int batchSize = 20;
+    private static final Logger log = LoggerFactory.getLogger(AnimalsClassification.class);
+    static int height = 100;
+    static int width = 100;
+    static int channels = 3;
+    static int batchSize = 20;
 
-    protected static long seed = 42;
-    protected static Random rng = new Random(seed);
-    protected static int epochs = 50;
-    protected static double splitTrainTest = 0.8;
-    protected static boolean save = false;
-    protected static int maxPathsPerLabel = 18;
+    static long seed = 42;
+    static Random rng = new Random(seed);
+    static int epochs = 50;
+    static double splitTrainTest = 0.8;
+    static boolean save = false ;
+    static int maxPathsPerLabel = 18;
 
-    protected static String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
+    static String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
     private int numLabels;
 
     public void run(String[] args) throws Exception {
@@ -118,7 +117,7 @@ public class AnimalsClassification {
         // Uncomment below to try AlexNet. Note change height and width to at least 100
 //        MultiLayerNetwork network = new AlexNet(height, width, channels, numLabels, seed, iterations).init();
 
-        MultiLayerNetwork network = ModelGenerator.getModelForType(modelType,numLabels);
+        MultiLayerNetwork network = ModelGenerator.getModelForType(modelType, numLabels);
         network.init();
         // network.setListeners(new ScoreIterationListener(listenerFreq));
         UIServer uiServer = UIServer.getInstance();
