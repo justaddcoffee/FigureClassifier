@@ -36,14 +36,16 @@ import java.util.Random;
 import static java.lang.Math.toIntExact;
 
 /**
- * Animal Classification
+ * This software classifies figures taken from a primary literature paper
+ * into either "image" (e.g. microscopy image of a worm, immunofluorescence image, etc)
+ * or a "non-image" (e.g. a graph, a barchart, a flowchart)
+ *
+ * The canonical input for this software is images output from the analyze command of
+ * figtools:
+ * https://github.com/INCATools/figtools
+ *
  * <p>
- * Example classification of photos from 4 different animals (bear, duck, deer, turtle).
- * <p>
- * References:
- * - U.S. Fish and Wildlife Service (animal sample dataset): http://digitalmedia.fws.gov/cdm/
- * - Tiny ImageNet Classification with CNN: http://cs231n.stanford.edu/reports/2015/pdfs/leonyao_final.pdf
- * <p>
+ * Cribbed from the AnimalsClassification.java example code:
  * CHALLENGE: Current setup gets low score results. Can you improve the scores? Some approaches:
  * - Add additional images to the dataset
  * - Apply more transforms to dataset
@@ -82,13 +84,13 @@ public class ImageOrNotClassification {
         ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
         File mainPath = new File(System.getProperty("user.dir"), "src/main/resources/figures/");
 
-        // TODO: automatically load data here
         if (!mainPath.exists()) {
             throw new RuntimeException("path $" + mainPath.getAbsolutePath() + "does not exist");
         }
         FileSplit fileSplit = new FileSplit(mainPath, NativeImageLoader.ALLOWED_FORMATS, rng);
         int numExamples = toIntExact(fileSplit.length());
         numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length; //This only works if your root is clean: only label subdirs.
+        assert numLabels==2 : "Expected 2 directories in mainPath (images/ and nonimages/)";
         BalancedPathFilter pathFilter = new BalancedPathFilter(rng, labelMaker, numExamples, numLabels, maxPathsPerLabel);
 
         /**
@@ -180,7 +182,6 @@ public class ImageOrNotClassification {
         }
         log.info("****************Example finished********************");
     }
-
 
     public static void main(String[] args) throws Exception {
         new ImageOrNotClassification().run(args);
