@@ -12,9 +12,7 @@ tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
 
-//mainClassName = 'org.deeplearning4j.examples.convolution.AnimalsClassification'
 mainClassName = 'org.deeplearning4j.examples.convolution.ImageOrNotClassification'
-
 
 repositories {
         
@@ -29,8 +27,6 @@ dependencies {
     // Use JUnit test framework
     testCompile 'junit:junit:4.12'
 
-
-
     compile group: 'org.nd4j', name: 'nd4j-native-platform', version:'1.0.0-beta3'
     compile group: 'org.deeplearning4j', name: 'deeplearning4j-core', version:'1.0.0-beta3'
     compile group: 'org.deeplearning4j', name: 'deeplearning4j-nlp', version:'1.0.0-beta3'
@@ -40,4 +36,10 @@ dependencies {
     compile group: 'org.datavec', name: 'datavec-data-codec', version:'1.0.0-beta3'
     compile group: 'org.apache.httpcomponents', name: 'httpclient', version:'4.3.5'
     compile group: 'ch.qos.logback', name: 'logback-classic', version:'1.1.7'
+}
+
+run {
+    if (project.hasProperty("appArgs")) {
+        args Eval.me(appArgs)
+    }
 }
