@@ -2,4 +2,4 @@
 
     ./gradlew run  
 
-[Open link](http://localhost:9000)
+[Open UI at localhost:9000 to view progress of training](http://localhost:9000)
