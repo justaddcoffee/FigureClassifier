@@ -7,4 +7,5 @@ target
 out
 .DS_Store
 src/main/resources/model.bin
-src/main/resources/figures/
+src/main/resources/training_data
+src/main/resources/images_to_classify

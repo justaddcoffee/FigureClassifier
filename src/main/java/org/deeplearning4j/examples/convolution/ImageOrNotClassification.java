@@ -3,6 +3,7 @@ package org.deeplearning4j.examples.convolution;
 import org.apache.commons.io.FilenameUtils;
 import org.datavec.api.io.filters.BalancedPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
+import org.datavec.api.records.reader.RecordReader;
 import org.datavec.api.split.FileSplit;
 import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.NativeImageLoader;
@@ -56,7 +57,7 @@ import static java.lang.Math.toIntExact;
 
 public class ImageOrNotClassification {
 
-    public void run(String[] args) throws Exception {
+    private void run(String[] args) throws Exception {
 
         final Logger log = LoggerFactory.getLogger(ImageOrNotClassification.class);
         int height = 100;
@@ -75,22 +76,30 @@ public class ImageOrNotClassification {
         int numLabels;
 
         log.info("Load data....");
-        /**cd
+
+        /**
          * Data Setup -> organize and limit data file paths:
-         *  - mainPath = path to image files
+         *  - trainingImages = path to image files
          *  - fileSplit = define basic dataset split with limits on format
          *  - pathFilter = define additional file load filter to limit size and balance batch content
          **/
-        ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
-        File mainPath = new File(System.getProperty("user.dir"), "src/main/resources/figures/");
 
-        if (!mainPath.exists()) {
-            throw new RuntimeException("path $" + mainPath.getAbsolutePath() + "does not exist");
+        ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
+        // TODO: get directory for imagesToBeClassified and trainingImages from command line args
+        File trainingImages = new File(System.getProperty("user.dir"), "src/main/resources/training_data/");
+        File imagesToBeClassified = new File(System.getProperty("user.dir"), "src/main/resources/images_to_classify/");
+
+        if (!trainingImages.exists()) {
+            throw new RuntimeException("path to training data $" + trainingImages.getAbsolutePath() + "does not exist");
         }
-        FileSplit fileSplit = new FileSplit(mainPath, NativeImageLoader.ALLOWED_FORMATS, rng);
+        if (!imagesToBeClassified.exists()) {
+            throw new RuntimeException("path to images to be classified $" + imagesToBeClassified.getAbsolutePath() + "does not exist");
+        }
+
+        FileSplit fileSplit = new FileSplit(trainingImages, NativeImageLoader.ALLOWED_FORMATS, rng);
         int numExamples = toIntExact(fileSplit.length());
         numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length; //This only works if your root is clean: only label subdirs.
-        assert numLabels==2 : "Expected 2 directories in mainPath (images/ and nonimages/)";
+        assert numLabels==2 : "Expected 2 directories in trainingImages (images/ and nonimages/)";
         BalancedPathFilter pathFilter = new BalancedPathFilter(rng, labelMaker, numExamples, numLabels, maxPathsPerLabel);
 
         /**
@@ -165,15 +174,21 @@ public class ImageOrNotClassification {
         Evaluation eval = network.evaluate(dataIter);
         log.info(eval.stats(true));
 
-        // Example on how to get predict results with trained model. Result for first example in minibatch is printed
-        dataIter.reset();
-        DataSet testDataSet = dataIter.next();
-        List<String> allClassLabels = recordReader.getLabels();
-        int labelIndex = testDataSet.getLabels().argMax(1).getInt(0);
-        int[] predictedClasses = network.predict(testDataSet.getFeatures());
-        String expectedResult = allClassLabels.get(labelIndex);
-        String modelPrediction = allClassLabels.get(predictedClasses[0]);
-        System.out.print("\nFor a single example that is labeled " + expectedResult + " the model predicted " + modelPrediction + "\n\n");
+        // classify things in imagesToBeClassified
+        RecordReader recReader = new ImageRecordReader(height, width, channels);
+        recReader.initialize(new FileSplit(new File(imagesToBeClassified.getAbsolutePath())));
+        DataSetIterator iter = new RecordReaderDataSetIterator(recReader, batchSize);
+
+        while (iter.hasNext()) {
+            DataSet testDataSet = iter.next();
+            List<String> allClassLabels = recordReader.getLabels();
+            int[] predictedClasses = network.predict(testDataSet.getFeatures());
+            String modelPrediction = allClassLabels.get(predictedClasses[0]);
+            System.out.print(
+                    "model classifies this\n:" +
+                    ((ImageRecordReader) recReader).getCurrentFile().toString() +
+                    ":\nas: " + modelPrediction + "\n\n");
+        }
 
         if (save) {
             log.info("Save model....");
