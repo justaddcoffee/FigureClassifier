@@ -3,7 +3,6 @@ package org.deeplearning4j.examples.convolution;
 import org.apache.commons.io.FilenameUtils;
 import org.datavec.api.io.filters.BalancedPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
-import org.datavec.api.records.reader.RecordReader;
 import org.datavec.api.split.FileSplit;
 import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.NativeImageLoader;
@@ -205,7 +204,7 @@ public class FigureClassification {
         String basePath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
         ModelSerializer.writeModel(network, basePath + "model.bin", true);
 
-        log.info("****************Example finished********************");
+        log.info("****************finished********************");
     }
 
     public static void main(String[] args) throws Exception {
