@@ -14,7 +14,7 @@ import org.datavec.image.transform.PipelineImageTransform;
 import org.datavec.image.transform.WarpImageTransform;
 import org.deeplearning4j.api.storage.StatsStorage;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
-import org.deeplearning4j.eval.Evaluation;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.ui.api.UIServer;
@@ -69,7 +69,6 @@ public class FigureClassification {
         Random rng = new Random(seed);
         int epochs = 50;
         double splitTrainTest = 0.8;
-        boolean save = true;
         int maxPathsPerLabel = 18;
 
         String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
@@ -77,43 +76,54 @@ public class FigureClassification {
 
         log.info("Load data....");
 
-         /**
+         /*
          * Data Setup -> organize and limit data file paths:
          *  - trainingImages = path to image files
          *  - fileSplit = define basic dataset split with limits on format
          *  - pathFilter = define additional file load filter to limit size and balance batch content
-         **/
+         */
 
         ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
         // TODO: get directory for imagesToBeClassified and trainingImages from command line args
         File trainingImages = new File(System.getProperty("user.dir"), "src/main/resources/training_data/");
-        File imagesToBeClassified = new File(System.getProperty("user.dir"), "src/main/resources/images_to_classify/");
+        File imagesToBeClassified = new File(System.getProperty("user.dir"),
+                "src/main/resources/images_to_classify/");
 
         if (!trainingImages.exists()) {
             throw new RuntimeException("path to training data $" + trainingImages.getAbsolutePath() + "does not exist");
         }
         if (!imagesToBeClassified.exists()) {
-            throw new RuntimeException("path to images to be classified $" + imagesToBeClassified.getAbsolutePath() + "does not exist");
+            throw new RuntimeException("path to images to be classified $" + imagesToBeClassified.getAbsolutePath() +
+                    "does not exist");
         }
 
         FileSplit fileSplit = new FileSplit(trainingImages, NativeImageLoader.ALLOWED_FORMATS, rng);
         int numExamples = toIntExact(fileSplit.length());
-        numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length; //This only works if your root is clean: only label subdirs.
-        assert numLabels==2 : "Expected 2 directories in trainingImages (images/ and nonimages/)";
+
+        //This only works if your root is clean: only label subdirs.
+        numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length;
+
+        if (numLabels != 2) {
+            throw new RuntimeException("training image dir:\n" + trainingImages.getAbsolutePath() +
+                    "\nshould have exactly two subdirectories with picture/ and nonpicture/ data" +
+                    "(found" + numLabels + "directories)");
+        }
+
+        assert numLabels==2 : "Expected 2 directories in trainingImages (hopefully pictures/ and nonpictures/)";
         BalancedPathFilter pathFilter = new BalancedPathFilter(rng, labelMaker, numExamples, numLabels, maxPathsPerLabel);
 
-        /**
+        /*
          * Data Setup -> train test split
          *  - inputSplit = define train and test split
-         **/
+        */
         InputSplit[] inputSplit = fileSplit.sample(pathFilter, splitTrainTest, 1 - splitTrainTest);
         InputSplit trainData = inputSplit[0];
         InputSplit testData = inputSplit[1];
 
-        /**
+        /*
          * Data Setup -> transformation
          *  - Transform = how to tranform images and generate large dataset to train on
-         **/
+        */
         ImageTransform flipTransform1 = new FlipImageTransform(rng);
         ImageTransform flipTransform2 = new FlipImageTransform(new Random(123));
         ImageTransform warpTransform = new WarpImageTransform(rng, 42);
@@ -123,16 +133,16 @@ public class FigureClassification {
                 new Pair<>(warpTransform, 0.5));
 
         ImageTransform transform = new PipelineImageTransform(pipeline, shuffle);
-        /**
+        /*
          * Data Setup -> normalization
          *  - how to normalize images and generate large dataset to train on
-         **/
+        */
         DataNormalization scaler = new ImagePreProcessingScaler(0, 1);
 
-        log.info("Build model....");
+        log.info("Building model....");
 
         // Uncomment below to try AlexNet. Note change height and width to at least 100
-//        MultiLayerNetwork network = new AlexNet(height, width, channels, numLabels, seed, iterations).init();
+        // MultiLayerNetwork network = new AlexNet(height, width, channels, numLabels, seed, iterations).init();
 
         MultiLayerNetwork network = ModelGenerator.getModelForType(modelType, numLabels);
         network.init();
@@ -141,17 +151,17 @@ public class FigureClassification {
         StatsStorage statsStorage = new InMemoryStatsStorage();
         uiServer.attach(statsStorage);
         network.setListeners(new StatsListener(statsStorage), new ScoreIterationListener(1));
-        /**
+        /*
          * Data Setup -> define how to load data into net:
          *  - recordReader = the reader that loads and converts image data pass in inputSplit to initialize
          *  - dataIter = a generator that only loads one batch at a time into memory to save memory
          *  - trainIter = uses MultipleEpochsIterator to ensure model runs through the data for all epochs
-         **/
+        */
         ImageRecordReader recordReader = new ImageRecordReader(height, width, channels, labelMaker);
         DataSetIterator dataIter;
 
 
-        log.info("Train model....");
+        log.info("Training model....");
         // Train without transformations
         recordReader.initialize(trainData, null);
         dataIter = new RecordReaderDataSetIterator(recordReader, batchSize, 1, numLabels);
@@ -166,7 +176,7 @@ public class FigureClassification {
         dataIter.setPreProcessor(scaler);
         network.fit(dataIter, epochs);
 
-        log.info("Evaluate model....");
+        log.info("Evaluating model....");
         recordReader.initialize(testData);
         dataIter = new RecordReaderDataSetIterator(recordReader, batchSize, 1, numLabels);
         scaler.fit(dataIter);
@@ -175,7 +185,7 @@ public class FigureClassification {
         log.info(eval.stats(true));
 
         // classify things in imagesToBeClassified
-        RecordReader recReader = new ImageRecordReader(height, width, channels);
+        ImageRecordReader recReader = new ImageRecordReader(height, width, channels);
         recReader.initialize(new FileSplit(new File(imagesToBeClassified.getAbsolutePath())));
         DataSetIterator iter = new RecordReaderDataSetIterator(recReader, 1);
 
@@ -186,15 +196,14 @@ public class FigureClassification {
             String modelPrediction = allClassLabels.get(predictedClasses[0]);
             System.out.print(
                     "model classifies this file\n:" +
-                    ((ImageRecordReader) recReader).getCurrentFile().toString() +
+                    recReader.getCurrentFile().toString() +
                     "\nas: " + modelPrediction + "\n\n");
         }
 
-        if (save) {
-            log.info("Save model....");
-            String basePath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
-            ModelSerializer.writeModel(network, basePath + "model.bin", true);
-        }
+        log.info("Save model....");
+        String basePath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
+        ModelSerializer.writeModel(network, basePath + "model.bin", true);
+
         log.info("****************Example finished********************");
     }
 
