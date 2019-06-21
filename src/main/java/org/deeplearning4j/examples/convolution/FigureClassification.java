@@ -104,9 +104,10 @@ public class FigureClassification {
         numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length;
 
         if (numLabels != 2) {
-            throw new RuntimeException("training image dir:\n" + trainingImages.getAbsolutePath() +
-                    "\nshould have exactly two subdirectories with picture/ and nonpicture/ data" +
-                    "(found" + numLabels + "directories)");
+            System.out.println("training image dir:\n`" + trainingImages.getAbsolutePath() +
+            "\nshould have exactly two subdirectories with picture/ and nonpicture/ data" +
+                    "\n(found " + numLabels + " directories)");
+            System.exit(-1);
         }
 
         assert numLabels==2 : "Expected 2 directories in trainingImages (hopefully pictures/ and nonpictures/)";
