@@ -4,7 +4,11 @@ apply plugin: 'application'
 group = 'org.inca'
 version = '1.0.0-beta3'
 
-description = """INCA learner"""
+description = """
+INCA learner - uses deep learning/CNN to classify figures from scientific publications into one of two classes:
+'pictures' (things like microscopy images, etc.) and 
+'not pictures' (things like barcharts, graphs, flowcharts, etc)
+"""
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -12,14 +16,13 @@ tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
 }
 
-mainClassName = 'org.deeplearning4j.examples.convolution.ImageOrNotClassification'
+mainClassName = 'org.deeplearning4j.examples.convolution.FigureClassification'
 
 repositories {
         
      maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
      maven { url "http://repo.maven.apache.org/maven2" }
-//    jcenter()
-	 
+
 }
 dependencies {
     compile 'com.google.guava:guava:23.0'

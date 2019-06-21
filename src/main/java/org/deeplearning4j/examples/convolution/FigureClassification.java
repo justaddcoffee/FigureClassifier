@@ -38,8 +38,8 @@ import static java.lang.Math.toIntExact;
 
 /**
  * This software classifies figures taken from a primary literature paper
- * into either "image" (e.g. microscopy image of a worm, immunofluorescence image, etc)
- * or a "non-image" (e.g. a graph, a barchart, a flowchart)
+ * into either "picture" (e.g. microscopy image of a worm, immunofluorescence image, etc)
+ * or a "non-picture" (e.g. a graph, a barchart, a flowchart)
  *
  * The canonical input for this software is images output from the analyze command of
  * figtools:
@@ -55,11 +55,11 @@ import static java.lang.Math.toIntExact;
  * - Tune by adjusting learning rate, updaters, activation & loss functions, regularization, ...
  */
 
-public class ImageOrNotClassification {
+public class FigureClassification {
 
     private void run(String[] args) throws Exception {
 
-        final Logger log = LoggerFactory.getLogger(ImageOrNotClassification.class);
+        final Logger log = LoggerFactory.getLogger(FigureClassification.class);
         int height = 100;
         int width = 100;
         int channels = 3;
@@ -77,7 +77,7 @@ public class ImageOrNotClassification {
 
         log.info("Load data....");
 
-        /**
+         /**
          * Data Setup -> organize and limit data file paths:
          *  - trainingImages = path to image files
          *  - fileSplit = define basic dataset split with limits on format
@@ -177,7 +177,7 @@ public class ImageOrNotClassification {
         // classify things in imagesToBeClassified
         RecordReader recReader = new ImageRecordReader(height, width, channels);
         recReader.initialize(new FileSplit(new File(imagesToBeClassified.getAbsolutePath())));
-        DataSetIterator iter = new RecordReaderDataSetIterator(recReader, batchSize);
+        DataSetIterator iter = new RecordReaderDataSetIterator(recReader, 1);
 
         while (iter.hasNext()) {
             DataSet testDataSet = iter.next();
@@ -185,9 +185,9 @@ public class ImageOrNotClassification {
             int[] predictedClasses = network.predict(testDataSet.getFeatures());
             String modelPrediction = allClassLabels.get(predictedClasses[0]);
             System.out.print(
-                    "model classifies this\n:" +
+                    "model classifies this file\n:" +
                     ((ImageRecordReader) recReader).getCurrentFile().toString() +
-                    ":\nas: " + modelPrediction + "\n\n");
+                    "\nas: " + modelPrediction + "\n\n");
         }
 
         if (save) {
@@ -199,7 +199,7 @@ public class ImageOrNotClassification {
     }
 
     public static void main(String[] args) throws Exception {
-        new ImageOrNotClassification().run(args);
+        new FigureClassification().run(args);
     }
 
 }
