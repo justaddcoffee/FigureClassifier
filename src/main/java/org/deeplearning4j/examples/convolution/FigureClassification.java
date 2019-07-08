@@ -135,7 +135,6 @@ public class FigureClassification {
         ImageTransform transform = new PipelineImageTransform(pipeline, shuffle);
         /*
          * Data Setup -> normalization
-         *  - how to normalize images and generate large dataset to train on
         */
         DataNormalization scaler = new ImagePreProcessingScaler(0, 1);
 
