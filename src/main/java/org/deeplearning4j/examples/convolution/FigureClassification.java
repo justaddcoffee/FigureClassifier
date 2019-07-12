@@ -33,6 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
+import static java.lang.Math.random;
 import static java.lang.Math.toIntExact;
 
 /**
@@ -59,19 +60,23 @@ public class FigureClassification {
     private void run(String[] args) throws Exception {
 
         final Logger log = LoggerFactory.getLogger(FigureClassification.class);
-        int height = 100;
-        int width = 100;
-        int channels = 3;
-        int batchSize = 20;
+        final int height = 100;
+        final int width = 100;
+        final int channels = 3;
+        final int batchSize = 20;
 
-        long seed = 42;
-        Random rng = new Random(seed);
-        int epochs = 50;
-        double splitTrainTest = 0.8;
-        int maxPathsPerLabel = 18;
+        final long seed = 42;
+        final Random randomNumGen1 = new Random(seed);
+        final Random randomNumGen2 = new Random(123);
+        final double splitTrainTest = 0.8;
+        final int maxPathsPerLabel = 18;
 
-        String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
-        int numLabels;
+        final String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
+        final int epochs = 50; // previously: 50
+        final double learningRate = 0.01; // default 0.01
+        final int numLabels;
+
+        final boolean shuffleDuringTransform = false;
 
         log.info("Load data....");
 
@@ -84,8 +89,9 @@ public class FigureClassification {
 
         ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
         // TODO: get directory for imagesToBeClassified and trainingImages from command line args
-        File trainingImages = new File(System.getProperty("user.dir"), "src/main/resources/training_data/");
-        File imagesToBeClassified = new File(System.getProperty("user.dir"),
+        final File trainingImages = new File(System.getProperty("user.dir"),
+                "src/main/resources/training_data/");
+        final File imagesToBeClassified = new File(System.getProperty("user.dir"),
                 "src/main/resources/images_to_classify/");
 
         if (!trainingImages.exists()) {
@@ -96,11 +102,16 @@ public class FigureClassification {
                     "does not exist");
         }
 
-        FileSplit fileSplit = new FileSplit(trainingImages, NativeImageLoader.ALLOWED_FORMATS, rng);
-        int numExamples = toIntExact(fileSplit.length());
+        final FileSplit fileSplit = new FileSplit(trainingImages, NativeImageLoader.ALLOWED_FORMATS, randomNumGen1);
+        final int numExamples = toIntExact(fileSplit.length());
 
         //This only works if your root is clean: only label subdirs.
-        numLabels = fileSplit.getRootDir().listFiles(File::isDirectory).length;
+        File[] dir = fileSplit.getRootDir().listFiles(File::isDirectory);
+        if (dir != null) {
+            numLabels = dir.length;
+        } else {
+            numLabels = 0;
+        }
 
         if (numLabels != 2) {
             System.out.println("training image dir:\n`" + trainingImages.getAbsolutePath() +
@@ -109,8 +120,7 @@ public class FigureClassification {
             System.exit(-1);
         }
 
-        assert numLabels==2 : "Expected 2 directories in trainingImages (hopefully pictures/ and nonpictures/)";
-        BalancedPathFilter pathFilter = new BalancedPathFilter(rng, labelMaker, numExamples, numLabels, maxPathsPerLabel);
+        BalancedPathFilter pathFilter = new BalancedPathFilter(randomNumGen1, labelMaker, numExamples, numLabels, maxPathsPerLabel);
 
         /*
          * Data Setup -> train test split
@@ -124,15 +134,14 @@ public class FigureClassification {
          * Data Setup -> transformation
          *  - Transform = how to tranform images and generate large dataset to train on
         */
-        ImageTransform flipTransform1 = new FlipImageTransform(rng);
-        ImageTransform flipTransform2 = new FlipImageTransform(new Random(123));
-        ImageTransform warpTransform = new WarpImageTransform(rng, 42);
-        boolean shuffle = false;
+        ImageTransform flipTransform1 = new FlipImageTransform(randomNumGen1);
+        ImageTransform flipTransform2 = new FlipImageTransform(randomNumGen2);
+        ImageTransform warpTransform = new WarpImageTransform(randomNumGen1, 42);
         List<Pair<ImageTransform, Double>> pipeline = Arrays.asList(new Pair<>(flipTransform1, 0.9),
                 new Pair<>(flipTransform2, 0.8),
                 new Pair<>(warpTransform, 0.5));
 
-        ImageTransform transform = new PipelineImageTransform(pipeline, shuffle);
+        ImageTransform transform = new PipelineImageTransform(pipeline, shuffleDuringTransform);
         /*
          * Data Setup -> normalization
         */
@@ -141,13 +150,14 @@ public class FigureClassification {
         log.info("Building model....");
 
         // Uncomment below to try AlexNet. Note change height and width to at least 100
-        // MultiLayerNetwork network = new AlexNet(height, width, channels, numLabels, seed, iterations).init();
+        //MultiLayerNetwork network = new AlexNet(height, width, channels, numLabels, seed, iterations).init();
 
         MultiLayerNetwork network = ModelGenerator.getModelForType(modelType, numLabels);
         network.init();
         // network.setListeners(new ScoreIterationListener(listenerFreq));
         UIServer uiServer = UIServer.getInstance();
         StatsStorage statsStorage = new InMemoryStatsStorage();
+        network.setLearningRate(learningRate);
         uiServer.attach(statsStorage);
         network.setListeners(new StatsListener(statsStorage), new ScoreIterationListener(1));
         /*
@@ -185,7 +195,7 @@ public class FigureClassification {
 
         // classify things in imagesToBeClassified
         ImageRecordReader recReader = new ImageRecordReader(height, width, channels);
-        recReader.initialize(new FileSplit(new File(imagesToBeClassified.getAbsolutePath())));
+        recReader.initialize(new FileSplit(new File(imagesToBeClassified.getAbsolutePath()),NativeImageLoader.ALLOWED_FORMATS));
         DataSetIterator iter = new RecordReaderDataSetIterator(recReader, 1);
 
         while (iter.hasNext()) {
