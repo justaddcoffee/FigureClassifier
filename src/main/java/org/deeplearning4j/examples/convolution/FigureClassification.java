@@ -71,9 +71,9 @@ public class FigureClassification {
         final double splitTrainTest = 0.8;
         final int maxPathsPerLabel = 18;
 
-        final String modelType = "AlexNet"; // LeNet, AlexNet or Custom but you need to fill it out
-        final int epochs = 50; // previously: 50
-        final double learningRate = 0.01; // default 0.01
+        final String modelType = "LeNet"; // LeNet, AlexNet or Custom but you need to fill it out
+        final int epochs = 70; // previously: 50
+        final double learningRate = 0.003; // default 0.01
         final int numLabels;
 
         final boolean shuffleDuringTransform = false;
@@ -95,11 +95,11 @@ public class FigureClassification {
                 "src/main/resources/images_to_classify/");
 
         if (!trainingImages.exists()) {
-            throw new RuntimeException("path to training data $" + trainingImages.getAbsolutePath() + "does not exist");
+            throw new RuntimeException("path to training data $" + trainingImages.getAbsolutePath() + " does not exist");
         }
         if (!imagesToBeClassified.exists()) {
             throw new RuntimeException("path to images to be classified $" + imagesToBeClassified.getAbsolutePath() +
-                    "does not exist");
+                    " does not exist");
         }
 
         final FileSplit fileSplit = new FileSplit(trainingImages, NativeImageLoader.ALLOWED_FORMATS, randomNumGen1);
