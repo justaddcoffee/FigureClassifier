@@ -65,9 +65,10 @@ public class FigureClassification {
         final int channels = 3;
         final int batchSize = 20;
 
-        final long seed = 42;
-        final Random randomNumGen1 = new Random(seed);
-        final Random randomNumGen2 = new Random(123);
+        final long seed1 = 42;
+        final long seed2 = 123;
+        final Random randomNumGen1 = new Random(seed1);
+        final Random randomNumGen2 = new Random(seed2);
         final double splitTrainTest = 0.8;
         final int maxPathsPerLabel = 18;
 
