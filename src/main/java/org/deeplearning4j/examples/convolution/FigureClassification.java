@@ -33,8 +33,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 
-import static java.lang.Math.random;
-import static java.lang.Math.toIntExact;
+import static java.lang.Math.*;
 
 /**
  * This software classifies figures taken from a primary literature paper
@@ -70,10 +69,11 @@ public class FigureClassification {
         final Random randomNumGen1 = new Random(seed1);
         final Random randomNumGen2 = new Random(seed2);
         final double splitTrainTest = 0.8;
-        final int maxPathsPerLabel = 18;
+        final int maxPathsPerLabel = 180;
+        // ^^ don't set this higher than the number of training images you have for each label
 
         final String modelType = "LeNet"; // LeNet, AlexNet or Custom but you need to fill it out
-        final int epochs = 70; // previously: 50
+        final int epochs = 10;
         final double learningRate = 0.003; // default 0.01
         final int numLabels;
 
@@ -121,7 +121,8 @@ public class FigureClassification {
             System.exit(-1);
         }
 
-        BalancedPathFilter pathFilter = new BalancedPathFilter(randomNumGen1, labelMaker, numExamples, numLabels, maxPathsPerLabel);
+        BalancedPathFilter pathFilter =
+                new BalancedPathFilter(randomNumGen1, labelMaker, numExamples, numLabels, maxPathsPerLabel);
 
         /*
          * Data Setup -> train test split
